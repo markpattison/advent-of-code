@@ -74,14 +74,39 @@ let part1() =
 let seedRanges =
     seeds
     |> Array.chunkBySize 2
+    |> Array.map (fun seedRange -> (seedRange.[0], seedRange.[1]))
+
+let rec convertRange acc map (startRange, rangeLength) =
+    if rangeLength = 0L then
+        acc
+    else
+        match map.Entries |> Array.tryFind (isInRange startRange) with
+        | Some mapEntry ->
+            let mappedRangeStart = mapEntry.DestStart + startRange - mapEntry.SourceStart
+            let mappedRangeLength = min rangeLength (mapEntry.RangeLength - startRange + mapEntry.SourceStart)
+            let remainingRangeLength = rangeLength - mappedRangeLength
+            convertRange ((mappedRangeStart, mappedRangeLength) :: acc) map (startRange + mappedRangeLength, remainingRangeLength)
+        | None ->
+            let laterMaps = map.Entries |> Array.filter (fun m -> m.SourceStart > startRange)
+            if laterMaps.Length = 0 then
+                (startRange, rangeLength) :: acc
+            else
+                let firstLaterMap = laterMaps |> Array.minBy _.SourceStart
+                if firstLaterMap.SourceStart > startRange + rangeLength then
+                    (startRange, rangeLength) :: acc
+                else
+                    let mappedRangeLength = firstLaterMap.SourceStart - startRange
+                    let remainingRangeLength = rangeLength - mappedRangeLength
+                    convertRange ((startRange, mappedRangeLength) :: acc) map (startRange + mappedRangeLength, remainingRangeLength)
 
 let part2() =
-    let mutable minimumLocation = Int64.MaxValue
+    let folder ranges map = List.collect (convertRange [] map) ranges
 
-    seedRanges
-    |> Array.iter (fun seedRange ->
-        for seed in seedRange.[0] .. (seedRange.[0] + seedRange.[1] - 1L) do
-            let location = convertThrough seed
-            if location < minimumLocation then minimumLocation <- location)
+    let locationRanges =
+        Array.fold folder (List.ofArray seedRanges) maps
     
+    let minimumLocation =
+        locationRanges |> List.map fst |> List.min
+
     printfn "Minimum location: %i" minimumLocation
+    

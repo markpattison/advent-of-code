@@ -2,6 +2,12 @@
 
 let header s = printfn "\n%s\n" s
 
+let time f =
+    let sw = System.Diagnostics.Stopwatch.StartNew()
+    let result = f()
+    printfn "Elapsed Time: %.3f" (float sw.ElapsedMilliseconds / 1000.0)
+    result
+
 // header "Day 1"
 
 // Day1.part1()
@@ -78,7 +84,12 @@ let header s = printfn "\n%s\n" s
 // Day15.part1()
 // Day15.part2()
 
-header "Day 16"
+// header "Day 16"
 
-Day16.part1()
-Day16.part2()
+// Day16.part1()
+// Day16.part2()
+
+header "Day 17"
+
+Day17.part1()
+Day17.part2()

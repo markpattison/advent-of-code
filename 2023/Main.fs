@@ -1,105 +1,34 @@
 ﻿module Main
 
+open System
+open System.Reflection
+
 let header s = printfn "\n%s\n" s
 
-let time f =
-    let sw = System.Diagnostics.Stopwatch.StartNew()
-    let result = f()
-    printfn "Elapsed Time: %.3f" (float sw.ElapsedMilliseconds / 1000.0)
-    result
+let timeMethod (method: MethodInfo) =
+    let sw = Diagnostics.Stopwatch.StartNew()
+    method.Invoke(null, null) |> ignore
+    Console.ForegroundColor <- ConsoleColor.DarkGray
+    printfn "  (elapsed Time: %.3fs)" (float sw.ElapsedMilliseconds / 1000.0)
+    Console.ResetColor()
 
-// header "Day 1"
+let runDay day =
+    let moduleName = sprintf "Day%i" day
 
-// Day1.part1()
-// Day1.part2()
+    match Type.GetType(moduleName) with
+    | null -> ()
+    | md ->
+        printfn "\nDay %i\n" day
 
-// header "Day 2"
+        match md.GetMethod("part1") with
+        | null -> ()
+        | method -> timeMethod method
 
-// Day2.part1()
-// Day2.part2()
+        match md.GetMethod("part2") with
+        | null -> ()
+        | method -> timeMethod method
 
-// header "Day 3"
+// for day in 1 .. 25 do
+//     runDay day
 
-// Day3.part1()
-// Day3.part2()
-
-// header "Day 4"
-
-// Day4.part1()
-// Day4.part2()
-
-// header "Day 5"
-
-// Day5.part1()
-// Day5.part2()
-
-// header "Day 6"
-
-// Day6.part1()
-// Day6.part2()
-
-// header "Day 7"
-
-// Day7.part1()
-// Day7.part2()
-
-// header "Day 8"
-
-// Day8.part1()
-// Day8.part2()
-// Day8.part2b()
-
-// header "Day 9"
-
-// Day9.part1()
-// Day9.part2()
-
-// header "Day 10"
-
-// Day10.part1()
-// Day10.part2()
-
-// header "Day 11"
-
-// Day11.part1()
-// Day11.part2()
-
-// header "Day 12"
-
-// Day12.part1()
-// Day12.part2()
-
-// header "Day 13"
-
-// Day13.part1()
-// Day13.part2()
-
-// header "Day 14"
-
-// Day14.part1()
-// Day14.part2()
-
-// header "Day 15"
-
-// Day15.part1()
-// Day15.part2()
-
-// header "Day 16"
-
-// Day16.part1()
-// Day16.part2()
-
-// header "Day 17"
-
-// Day17.part1()
-// Day17.part2()
-
-// header "Day 18"
-
-// Day18.part1()
-// Day18.part2()
-
-header "Day 19"
-
-Day19.part1()
-Day19.part2()
+runDay 19

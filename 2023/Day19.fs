@@ -25,13 +25,7 @@ type Workflow =
         FinalDestination: Destination
     }
 
-type Part =
-    {
-        X: int
-        M: int
-        A: int
-        S: int
-    }
+type Part = Map<Rating, int>
 
 let parseRating (s: string) =
     match s with
@@ -95,28 +89,23 @@ let workflows =
     |> Array.map parseWorkflowWithName
     |> Map.ofArray
 
-let parsePart (s: string) =
+let parsePart (s: string) : Part =
     let splits = s.Substring(1, s.Length - 2).Split(",")
 
-    {
-        X = splits.[0].Substring(2) |> Int32.Parse
-        M = splits.[1].Substring(2) |> Int32.Parse
-        A = splits.[2].Substring(2) |> Int32.Parse
-        S = splits.[3].Substring(2) |> Int32.Parse
-    }
+    [
+        X, splits.[0].Substring(2) |> Int32.Parse
+        M, splits.[1].Substring(2) |> Int32.Parse
+        A, splits.[2].Substring(2) |> Int32.Parse
+        S, splits.[3].Substring(2) |> Int32.Parse
+    ] |> Map.ofList
 
 let parts =
     input
     |> Array.skip (numWorkflows + 1)
     |> Array.map parsePart
 
-let matchesCondition part rule =
-    let relevantValue =
-        match rule.Rating with
-        | X -> part.X
-        | M -> part.M
-        | A -> part.A
-        | S -> part.S
+let matchesCondition (part: Part) rule =
+    let relevantValue = part.[rule.Rating]
     
     match rule.Condition with
         | Gt -> relevantValue > rule.Value
@@ -139,7 +128,7 @@ let rec finalDestination (wfs: Map<string, Workflow>) part nextWorkflowName =
     | Final f -> f
     | Workflow w -> finalDestination wfs part w
 
-let score part = part.X + part.M + part.A + part.S
+let score (part: Part) = part.[X] + part.[M] + part.[A] + part.[S]
 
 let part1() =
     let findFinalDestination part = finalDestination workflows part "in"
@@ -160,22 +149,11 @@ type Range =
         Max: int
     }
 
-type PartRange =
-    {
-        RangeX: Range
-        RangeM: Range
-        RangeA: Range
-        RangeS: Range
-    }
+type PartRange = Map<Rating, Range>
 
 // returns rangeIfMatches, rangeIfDoesn'tMatch
-let findRangeOverlap rule partRange =
-    let relevantRange =
-        match rule.Rating with
-        | X -> partRange.RangeX
-        | M -> partRange.RangeM
-        | A -> partRange.RangeA
-        | S -> partRange.RangeS
+let findRangeOverlap rule (partRange: PartRange) =
+    let relevantRange = partRange.[rule.Rating]
     
     let newRange, remainingRange =
         match rule.Condition with
@@ -197,12 +175,7 @@ let findRangeOverlap rule partRange =
     match newRange, remainingRange with
     | None, Some _ -> None, Some partRange
     | Some _, None -> Some partRange, None
-    | Some newR, Some remR ->
-        match rule.Rating with
-        | X -> Some { partRange with RangeX = newR }, Some { partRange with RangeX = remR }
-        | M -> Some { partRange with RangeM = newR }, Some { partRange with RangeM = remR }
-        | A -> Some { partRange with RangeA = newR }, Some { partRange with RangeA = remR }
-        | S -> Some { partRange with RangeS = newR }, Some { partRange with RangeS = remR }
+    | Some newR, Some remR -> Some (Map.add rule.Rating newR partRange), Some (Map.add rule.Rating remR partRange)
     | None, None -> failwith "unexpected"
 
 let rec processRangeForRules partRange (finalDest: Destination) rules =
@@ -232,22 +205,19 @@ let rec finalDestinations (wfs: Map<string, Workflow>) partRange nextWorkflowNam
     |> Array.concat
 
 let rangeSize range = (1 + range.Max - range.Min) |> int64
-let includedParts partRange =
-    (rangeSize partRange.RangeX) * (rangeSize partRange.RangeM) * (rangeSize partRange.RangeA) * (rangeSize partRange.RangeS)
+let includedParts (partRange: PartRange) =
+    (rangeSize partRange.[X]) * (rangeSize partRange.[M]) * (rangeSize partRange.[A]) * (rangeSize partRange.[S])
 
 let part2() =
     let findFinalDestinations partRange = finalDestinations workflows partRange "in"
 
-    let initialRange =
-        {
-            RangeX = { Min = 1; Max = 4000 }
-            RangeM = { Min = 1; Max = 4000 }
-            RangeA = { Min = 1; Max = 4000 }
-            RangeS = { Min = 1; Max = 4000 }
-        }
+    let initialRange = { Min = 1; Max = 4000 }
+    let initialPartRange : PartRange =
+        [ X, initialRange; M, initialRange; A, initialRange; S, initialRange ]
+        |> Map.ofList
 
     let numAccepted =
-        findFinalDestinations initialRange
+        findFinalDestinations initialPartRange
         |> Array.filter (fun (_, f) -> f = Accepted)
         |> Array.sumBy (fun (r, _) -> includedParts r)
     

@@ -31,4 +31,4 @@ let runDay day =
 // for day in 1 .. 25 do
 //     runDay day
 
-runDay 24
+runDay 25

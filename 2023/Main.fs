@@ -9,7 +9,7 @@ let timeMethod (method: MethodInfo) =
     let sw = Diagnostics.Stopwatch.StartNew()
     method.Invoke(null, null) |> ignore
     Console.ForegroundColor <- ConsoleColor.DarkGray
-    printfn "  (elapsed Time: %.3fs)" (float sw.ElapsedMilliseconds / 1000.0)
+    printfn "  (elapsed time: %.3fs)" (float sw.ElapsedMilliseconds / 1000.0)
     Console.ResetColor()
 
 let runDay day =
@@ -28,7 +28,16 @@ let runDay day =
         | null -> ()
         | method -> timeMethod method
 
-// for day in 1 .. 25 do
-//     runDay day
+let runAllDays() =
+    let sw = Diagnostics.Stopwatch.StartNew()
 
-runDay 25
+    for day in 1 .. 25 do
+        runDay day
+    
+    Console.ForegroundColor <- ConsoleColor.Green
+    printfn "\nTotal elapsed time: %.3fs)" (float sw.ElapsedMilliseconds / 1000.0)
+    Console.ResetColor()
+
+runAllDays()
+
+// runDay 25

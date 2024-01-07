@@ -50,38 +50,19 @@ let part1() =
     
     printfn "Total score: %i" sum
 
-let cardsWon card =
-    let wins = howManyWinning card
-
-    if wins = 0 then
-        []
-    else
-        [ card.CardNumber + 1 .. card.CardNumber + wins ]
-        |> List.map (fun cn -> cards.[cn - 1])
-
-type State =
-    {
-        Processed: Card list
-        ToProcess: Card list
-    }
-
-let rec processCards state =
-    match state.ToProcess with
-    | [] -> state
-    | x :: xs ->
-        let won = cardsWon x
-        let newState =
-            {
-                Processed = x :: state.Processed
-                ToProcess = won @ xs
-            }
-        processCards newState
-
 let part2() =
-    let initialState = { Processed = []; ToProcess = cards |> Array.toList }
+    let numberOfCards = Array.create cards.Length 1
 
-    let finalCards = processCards initialState
+    let processCard cardIndex =
+        let numCopies = numberOfCards.[cardIndex]
+        let wins = howManyWinning cards.[cardIndex]
 
-    let totalCards = List.length finalCards.Processed
+        for i in cardIndex + 1 .. cardIndex + wins do
+            numberOfCards.[i] <- numberOfCards.[i] + numCopies
+    
+    for i in 0 .. cards.Length - 1 do
+        processCard i
+    
+    let totalCards = Array.sum numberOfCards
 
     printfn "Total cards: %i" totalCards

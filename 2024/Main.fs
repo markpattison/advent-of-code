@@ -2,6 +2,6 @@
 
 open Common.Runner
 
-runDay 4
+runDay 5
 
 // runAllDays()

@@ -74,14 +74,16 @@ let part1() =
     printfn "Steps: %i" steps
 
 let part2() =
-    let corrupted = getCorrupted 1024
-    let firstFail =
-        seq { 1024 .. locations.Length - 1 }
-        |> Seq.find (fun n ->
-            let x, y = locations.[n]
-            corrupted.[x, y] <- true
-            minSteps corrupted = Int32.MaxValue)
+    let mutable lowerBound = 1024
+    let mutable upperBound = locations.Length
+
+    while upperBound - lowerBound > 1 do
+        let toTry = (lowerBound + upperBound) / 2
+        if toTry |> getCorrupted |> minSteps = Int32.MaxValue then
+            upperBound <- toTry
+        else
+            lowerBound <- toTry
     
-    let x, y = locations.[firstFail]
+    let x, y = locations.[lowerBound]
 
     printfn "Location: %i,%i" x y

@@ -42,11 +42,51 @@ let parseLine (s: string) =
 
 let numFloors = input.Length
 
+[<CustomComparison; CustomEquality>]
 type State =
     {
         FloorContents: array<Set<Item>>
+        Locations: int[]
         ElevatorLevel: int
     }
+    interface IEquatable<State> with
+        member this.Equals other = other.ElevatorLevel = this.ElevatorLevel && other.Locations = this.Locations
+    override this.Equals other =
+        match other with
+        | :? State as s -> (this :> IEquatable<_>).Equals s
+        | _ -> false
+    override this.GetHashCode() = this.Locations.GetHashCode() + 19999 * this.ElevatorLevel
+    interface IComparable with
+        member this.CompareTo other =
+            match other with
+            | :? State as s -> (this :> IComparable<_>).CompareTo s
+            | _ -> -1
+    interface IComparable<State> with
+        member this.CompareTo other =
+            if this.ElevatorLevel > other.ElevatorLevel then 1
+            elif this.ElevatorLevel < other.ElevatorLevel then -1
+            else compare this.Locations other.Locations
+
+let toState elements floorContents elevatorLevel =
+    let locations =
+        elements
+        |> Array.map (fun e ->
+            floorContents
+            |> Array.indexed
+            |> Array.sumBy (fun (floor, fc) ->
+                (if Set.contains (Microchip e) fc then 10 * (1 + floor) else 0)
+                + (if Set.contains (Generator e) fc then (1 + floor) else 0)))
+        |> Array.sort
+    {
+        FloorContents = floorContents
+        Locations = locations
+        ElevatorLevel = elevatorLevel
+    }
+
+let allElements contents =
+    contents
+    |> Array.collect (fun fc -> Set.toArray fc)
+    |> Array.choose (fun item -> match item with | Generator element -> Some element | _ -> None)
 
 let initialState =
     let contents : array<Set<Item>> = Array.create numFloors Set.empty
@@ -55,10 +95,9 @@ let initialState =
     |> Array.map parseLine
     |> Array.iter (fun (floor, items) -> contents.[floor - 1] <- items)
 
-    {
-        FloorContents = contents
-        ElevatorLevel = 0
-    }
+    let elements = allElements contents
+
+    toState elements contents 0
 
 let isFinished state =
     let mutable finished = true
@@ -81,7 +120,7 @@ let isAllowable state =
     state.FloorContents
     |> Array.forall isFloorAllowable
 
-let allowableMoves state =
+let allowableMoves elements state =
     let currentFloor = state.FloorContents.[state.ElevatorLevel]
     let currentFloorArray = currentFloor |> Set.toArray
 
@@ -104,20 +143,17 @@ let allowableMoves state =
             else
                 [||]
         
-        let combinations = Array.append singleCombinations doubleCombinations
-        
         let moveToFloor newFloor combination =
-            {
-                FloorContents =
-                    Array.init numFloors (fun i ->
-                        if i = newFloor then
-                            Set.union combination state.FloorContents.[newFloor]
-                        elif i = state.ElevatorLevel then
-                            Set.difference currentFloor combination
-                        else
-                            state.FloorContents.[i])
-                ElevatorLevel = newFloor
-            }
+            let floorContents =
+                Array.init numFloors (fun i ->
+                    if i = newFloor then
+                        Set.union combination state.FloorContents.[newFloor]
+                    elif i = state.ElevatorLevel then
+                        Set.difference currentFloor combination
+                    else
+                        state.FloorContents.[i])
+
+            toState elements floorContents newFloor
         
         let minRelevantFloor =
             if state.FloorContents.[0].IsEmpty then
@@ -162,15 +198,16 @@ let allowableMoves state =
         allowable
 
 let bfs state =
+    let elements = allElements state.FloorContents
+
     (set [ state ], set [ state ])
     |> Seq.unfold (fun (nodesAtPrevDistance, visitedNodes) ->
-        // printfn "%i, %i" nodesAtPrevDistance.Count visitedNodes.Count
         if Set.isEmpty nodesAtPrevDistance then
             None
         else
             let nextNodes =
                 nodesAtPrevDistance
-                |> Seq.map (fun n -> allowableMoves n |> set)
+                |> Seq.map (fun n -> allowableMoves elements n |> set)
                 |> Set.unionMany
                 |> fun ns -> Set.difference ns visitedNodes
             let visitedNow = Set.union visitedNodes nextNodes
@@ -183,15 +220,11 @@ let part1() =
     
     printfn "Minimum steps: %i" minSteps
 
-// very slow (c10 minutes)
-
 let part2() =
     let newElements = set [ Generator "elerium"; Microchip "elerium"; Generator "dilithium"; Microchip "dilithium" ]
-    let newState =
-        {
-            FloorContents = initialState.FloorContents |> Array.mapi (fun i s -> if i = 0 then Set.union s newElements else s)
-            ElevatorLevel = 0
-        }
+    let newFloorContents = initialState.FloorContents |> Array.mapi (fun i s -> if i = 0 then Set.union s newElements else s)
+    let elements = allElements newFloorContents
+    let newState = toState elements newFloorContents 0
     
     let minSteps =
         bfs newState

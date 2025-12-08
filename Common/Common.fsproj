@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Common.fs" />
+    <Compile Include="Range.fs" />
     <Compile Include="Runner.fs" />
   </ItemGroup>
 

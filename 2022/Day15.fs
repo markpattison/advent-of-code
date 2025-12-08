@@ -3,13 +3,16 @@
 open System
 open System.IO
 
-type Position = int * int
+open Common
+open Common.Types
+
+type Position = int64 * int64
 
 type Sensor =
     {
         Position: Position
         ClosestBeacon: Position
-        Distance: int
+        Distance: int64
     }
 
 let distance (p1: Position) (p2: Position) =
@@ -18,13 +21,13 @@ let distance (p1: Position) (p2: Position) =
 let parseLine (s: string) =
     let firstComma = s.IndexOf(',')
     let colon = s.IndexOf(':')
-    let sensorX = s.Substring(12, firstComma - 12) |> int
-    let sensorY = s.Substring(firstComma + 4, colon - firstComma - 4) |> int
+    let sensorX = s.Substring(12, firstComma - 12) |> int64
+    let sensorY = s.Substring(firstComma + 4, colon - firstComma - 4) |> int64
 
     let isAt = s.IndexOf("is at")
     let secondComma = s.IndexOf(',', firstComma + 1)
-    let beaconX = s.Substring(isAt + 8, secondComma - isAt - 8) |> int
-    let beaconY = s.Substring(secondComma + 4) |> int
+    let beaconX = s.Substring(isAt + 8, secondComma - isAt - 8) |> int64
+    let beaconY = s.Substring(secondComma + 4) |> int64
 
     let position = sensorX, sensorY
     let closestBeacon = beaconX, beaconY
@@ -38,43 +41,10 @@ let sensors =
     File.ReadAllLines(@"input\day15.txt")
     |> Array.map parseLine
 
-type InclusiveRange =
-    {
-        Min: int
-        Max: int
-    }
-
-type OrderedInclusiveRanges =
-    {
-        Ranges: InclusiveRange [] // ordered by Min
-    }
-
-let merge r1 r2 =
-    let ra, rb = if r1.Min > r2.Min then r2, r1 else r1, r2 // now ra.Min >= rb.Min
-
-    if rb.Min > ra.Max + 1 then
-        [| ra; rb |] // do not overlap
-    else
-        let joint = { Min = ra.Min; Max = max ra.Max rb.Max}
-        [| joint |]
-
-let mergeOrdered oir r =
-    if oir.Ranges.Length = 0 then
-        { Ranges = [| r |] }
-    else
-        let allButLast = oir.Ranges |> Array.take (oir.Ranges.Length - 1)
-        let lastRange = oir.Ranges |> Array.last
-        let merged = merge lastRange r
-        { Ranges = Array.append allButLast merged }
-
-let rangeSize r = 1 + r.Max - r.Min
-let orderedRangeSize oir = oir.Ranges |> Array.sumBy rangeSize
-
-let rangeContains x r = x >= r.Min && x <= r.Max
-let orderedRangeContains x oir = Array.exists (rangeContains x) oir.Ranges
+let orderedRangeContains x oir = Array.exists (Range.contains x) oir
 
 let rangeIsContainedByRange inner outer = inner.Min >= outer.Min && inner.Max <= outer.Max
-let orderedRangeContainsRange oir r = Array.exists (rangeIsContainedByRange r) oir.Ranges
+let orderedRangeContainsRange oir r = Array.exists (rangeIsContainedByRange r) oir
 
 let getRanges y =
     sensors
@@ -86,11 +56,10 @@ let getRanges y =
         else
             let size = s.Distance - yDist
             Some { Min = sx - size; Max = sx + size })
-    |> Array.sortBy (fun r -> r.Min)
-    |> Array.fold mergeOrdered { Ranges = [||] }
+    |> Range.mergeAll
 
 let part1() =
-    let y = 2000000
+    let y = 2000000L
 
     let ranges = getRanges y
 
@@ -101,27 +70,28 @@ let part1() =
         |> Array.distinct
         |> Array.filter (fun x -> orderedRangeContains x ranges)
         |> Array.length
+        |> int64
 
-    let notBeacons = orderedRangeSize ranges - containedBeacons
+    let notBeacons = (ranges |> Array.sumBy Range.size) - containedBeacons
 
     printfn "Positions not containing a beacon: %i" notBeacons
 
 let part2() =
-    let targetRange = { Min = 0; Max = 4000000 }
+    let targetRange = { Min = 0L; Max = 4000000L }
     let mutable foundBeacon = false
-    let mutable x, y = 0, 0
+    let mutable x, y = 0L, 0L
     
-    while not foundBeacon && y <= 4000000 do
+    while not foundBeacon && y <= 4000000L do
         let ranges = getRanges y
         if orderedRangeContainsRange ranges targetRange then
-            y <- y + 1
+            y <- y + 1L
         else
             foundBeacon <- true
             x <-
-                ranges.Ranges
+                ranges
                 |> Array.find (fun r -> r.Max >= targetRange.Min)
-                |> (fun r -> r.Max + 1)
+                |> (fun r -> r.Max + 1L)
     
-    let frequency = (int64 x) * 4000000L + (int64 y)
+    let frequency = x * 4000000L + y
 
     printfn "Frequency: %i" frequency

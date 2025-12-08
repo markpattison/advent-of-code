@@ -9,8 +9,8 @@ let input =
 let junctions =
     input
     |> Array.map (fun s ->
-        let parts = s.Split(',')
-        Int64.Parse(parts.[0]), Int64.Parse(parts.[1]), Int64.Parse(parts.[2]))
+        let parts = s.Split(',') |> Array.map Int64.Parse
+        parts.[0], parts.[1], parts.[2])
 
 let numJunctions = junctions.Length
 
@@ -23,15 +23,15 @@ let pairsByDistance =
     seq {
         for i in 0 .. numJunctions - 2 do
             for j in i + 1 .. numJunctions - 1 do
-                yield distance i j, i, j
+                yield distance i j, (i, j)
     }
-    |> Seq.sortBy (fun (dist, _, _) -> dist)
-    |> Seq.map (fun (_, i, j) -> i, j)
+    |> Seq.sortBy fst
+    |> Seq.map snd
     |> Seq.toList
 
 let addCircuit circuits toAdd =
     let i, j = toAdd
-    match List.tryFind (fun c -> List.contains i c) circuits, List.tryFind (fun c -> List.contains j c) circuits with
+    match List.tryFind (List.contains i) circuits, List.tryFind (List.contains j) circuits with
     | None, None ->
         [ i; j ] :: circuits
     | Some c, None ->
@@ -55,18 +55,19 @@ let part1() =
         |> List.map _.Length
         |> List.sortDescending
         |> List.take 3
-        |> List.fold (*) 1
+        |> List.reduce (*)
     
     printfn "Product: %i" product
 
 let part2() =
     let rec findLastPair circuits remaining =
-        let next = List.head remaining
-        let newCircuits = addCircuit circuits next
-        if newCircuits.Length = 1 && (List.head newCircuits).Length = numJunctions then
-            next
-        else
-            findLastPair newCircuits (List.tail remaining)
+        match remaining with
+        | [] -> failwith "unexpected"
+        | next :: rest ->
+            let newCircuits = addCircuit circuits next
+            match newCircuits with
+                | [ head ] when head.Length = numJunctions -> next
+                | _ -> findLastPair newCircuits rest
 
     let j1, j2 = findLastPair [] pairsByDistance
 

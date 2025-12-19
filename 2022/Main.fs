@@ -2,6 +2,4 @@
 
 open Common.Runner
 
-runDay 25
-
-// runAllDays()
+runLatest()

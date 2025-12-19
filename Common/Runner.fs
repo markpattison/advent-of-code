@@ -10,8 +10,10 @@ let private timeMethod (method: MethodInfo) =
     printfn "  (elapsed time: %.3fs)" (float sw.ElapsedMilliseconds / 1000.0)
     Console.ResetColor()
 
+let private getModuleName day = sprintf "Day%i" day
+
 let private runOneDay (assembly: Assembly) day =
-    let moduleName = sprintf "Day%i" day
+    let moduleName = getModuleName day
 
     match assembly.GetType(moduleName) with
     | null -> ()
@@ -40,3 +42,10 @@ let runAllDays() =
     Console.ForegroundColor <- ConsoleColor.Green
     printfn "\nTotal elapsed time: %.3fs" (float sw.ElapsedMilliseconds / 1000.0)
     Console.ResetColor()
+
+let runLatest() =
+    let assembly = Assembly.GetEntryAssembly()
+
+    let latestDay = [ 25 .. -1 .. 1 ] |> List.find (fun day -> assembly.GetType(getModuleName day) <> null)
+
+    runDay latestDay

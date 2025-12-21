@@ -37,7 +37,7 @@ let writeOut chunks =
     |> Seq.toList
 
 let applyRepeatedly n startingSequence =
-    { 1 .. n } |> Seq.fold (fun sequence _ -> sequence |> parseIntoChunks |> writeOut) startingSequence
+    seq { 1 .. n } |> Seq.fold (fun sequence _ -> sequence |> parseIntoChunks |> writeOut) startingSequence
 
 let part1() =
     let sequence = applyRepeatedly 40 initialSequence

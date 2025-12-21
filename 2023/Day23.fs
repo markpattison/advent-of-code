@@ -138,7 +138,7 @@ type NodeState = { Current: int; RemainingNodes: Set<int>; Steps: int }
 let part2() =
     let adjacentWithSteps = Array.init numNodes findAdjacentNodesFrom
 
-    let initialRemaining = { 0 .. numNodes - 1} |> Set.ofSeq |> Set.remove startIndex
+    let initialRemaining = seq { 0 .. numNodes - 1} |> Set.ofSeq |> Set.remove startIndex
     let initialState = { Current = startIndex; RemainingNodes = initialRemaining; Steps = 0 }
 
     let rec longestPath state =

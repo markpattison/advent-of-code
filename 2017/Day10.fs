@@ -43,27 +43,30 @@ let part1() =
 
     printfn "Product: %i" product
 
-let allLengths2 =
-    input.ToCharArray()
-    |> Array.map int
+let appendSalt data = Array.append data [| 17; 31; 73; 47; 23 |]
+
+let round state data =
+    data |> Array.fold knot state
+
+let getFinalElements data =
+    [| 0 .. 63 |]
+    |> Array.fold (fun state _ -> round state data) (initialState 256)
+    |> _.Elements
+
+let denseHash =
+    appendSalt
+    >> getFinalElements
+    >> Array.chunkBySize 16
+    >> Array.map (Array.reduce (^^^))
 
 let part2() =
-    let lengthsPart2 = Array.append allLengths2 [| 17; 31; 73; 47; 23 |]
-    
-    let round state =
-        lengthsPart2 |> Array.fold knot state
+    let inputData =
+        input.ToCharArray()
+        |> Array.map int
 
-    let finalState =
-        [| 0 .. 63 |]
-        |> Array.fold (fun state _ -> round state) (initialState 256)
-
-    let denseHash =
-        finalState.Elements
-        |> Array.chunkBySize 16
-        |> Array.map (Array.reduce (^^^))
-    
     let knotHash =
-        denseHash
+        inputData
+        |> denseHash
         |> Array.map (fun n -> n.ToString("x2"))
         |> System.String.Concat
     
